@@ -2,8 +2,6 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post,
 import { Usuario } from "../entities/usuario.entity";
 import { UsuarioService } from "../services/usuario.service";
 
-
-
 @Controller("/usuarios")
 export class UsuarioController {
 
