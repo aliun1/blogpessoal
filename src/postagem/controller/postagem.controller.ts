@@ -4,7 +4,7 @@ import { Postagem } from "../entities/postagem.entity";
 import { DeleteResult } from "typeorm";
 
 
-@Controller("/postagens")   // Indica que a Classe é uma Controller
+@Controller("/postagens")   // mostra que a Classe é uma Controller
 export class PostagemController {
 
     // Dentro do Construtor injetamos o postagemService para podermos usar seus métodos
@@ -15,7 +15,6 @@ export class PostagemController {
     findAll(): Promise<Postagem[]> {
         return this.postagemService.findAll();  // Invoca a Service e chama o método correspondente
     }
-
     // @Get("/:id_post") Indica que esse método lida com Requisições do Tipo GET e que no seu endpoint será enviado um id como parametro
     // @Param captura o paramêtro envia pelo endpoint e o atribui ao parametro do método findById(id:number)
     // ParseIntPipe converte o parametro do endpoint de string para int. Ex: id: '1' => id: 1
