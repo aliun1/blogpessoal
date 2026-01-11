@@ -1,25 +1,17 @@
-import { forwardRef, Module } from "@nestjs/common";
-import { Bcrypt } from "./bcrypt/bcrypt";
-import { PassportModule } from "@nestjs/passport";
-import { JwtModule } from "@nestjs/jwt";
-import { jwtConstants } from "./constants/constants";
-import { AuthService } from "./services/auth.service";
-import { AuthController } from "./controllers/auth.controller";
-import { LocalStrategy } from "./strategy/local.strategy";
-import { UsuarioModule } from "src/usuario/services/usuario.module";
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Usuario } from 'src/usuario/entities/usuario.entity';
+import { UsuarioService } from 'src/usuario/services/usuario.service';
+import { UsuarioController } from 'src/usuario/controller/usuario.controller';
+import { AuthModule } from './entities/auth.module';
 
 @Module({
-    imports: [
-        forwardRef(() => UsuarioModule),
-        PassportModule,
-        JwtModule.register({
-            secret: jwtConstants.secret,
-            signOptions: {expiresIn: "1h"},
-        })
-
-    ],
-    controllers: [AuthController],
-    providers: [Bcrypt, AuthService, LocalStrategy],
-    exports: [Bcrypt],
+  imports: [
+    TypeOrmModule.forFeature([Usuario]),
+    AuthModule, // 👈 SEM ISSO, O ERRO NUNCA SOME
+  ],
+  providers: [UsuarioService],
+  controllers: [UsuarioController],
+  exports: [UsuarioService],
 })
-export class AuthModule {};
+export class UsuarioModule {}

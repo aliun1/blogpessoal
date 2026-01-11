@@ -1,9 +1,8 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { TemaController } from "./controller/tema.controller";
 import { Tema } from "./entities/tema.entity";
 import { TemaService } from "./services/tema.service";
-
+import { TemaController } from "./controller/tema.controller";
 
 @Module({
     imports: [TypeOrmModule.forFeature([Tema])],
@@ -11,4 +10,4 @@ import { TemaService } from "./services/tema.service";
     controllers: [TemaController],
     exports: [TypeOrmModule]
 })
-export class TemaModule { }
+export class TemaModule {}
