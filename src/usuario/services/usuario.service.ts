@@ -1,82 +1,70 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuario } from '../entities/usuario.entity';
-import { Bcrypt } from 'src/auth/bcrypt/bcrypt';
-import { InjectRepository } from '@nestjs/typeorm';
-
+import { Bcrypt } from '../../auth/bcrypt/bcrypt';
 
 @Injectable()
 export class UsuarioService {
     constructor(
         @InjectRepository(Usuario)
         private usuarioRepository: Repository<Usuario>,
-        private bcrypt: Bcrypt
-    ) {}
+        private bcrypt: Bcrypt  // Dentro do Construtor injetamos o arquivo BCRYPT para podermos usar seus métodos
+    ) { }
 
-    // 🔍 Buscar usuário pelo username (email)
     async findByUsuario(usuario: string): Promise<Usuario | null> {
-        return this.usuarioRepository.findOne({
+        return await this.usuarioRepository.findOne({
             where: {
                 usuario: usuario
             }
-        });
+        })
     }
 
-    // 📋 Listar todos os usuários com postagens
-    async findAll(): Promise<Usuario[]> {
-        return this.usuarioRepository.find({
-            relations: {
-                postagem: true
-            }
-        });
-    }
+   async findAll(): Promise<Usuario[]> {
+    return await this.usuarioRepository.find({
+        relations: { postagem: true }
+    });
+}
 
-    // 🔍 Buscar usuário por ID
-    async findById(id: number): Promise<Usuario> {
+async findById(id: number): Promise<Usuario> {
+    let usuario = await this.usuarioRepository.findOne({
+        where: { id },
+        relations: { postagem: true }
+    });
 
-        const usuario = await this.usuarioRepository.findOne({
-            where: {
-                id: id
-            }
-        });
+    if (!usuario)
+        throw new HttpException('Usuário não encontrado!', HttpStatus.NOT_FOUND);
 
-        if (!usuario)
-            throw new HttpException(
-                'Usuário não encontrado!',
-                HttpStatus.NOT_FOUND
-            );
+    return usuario;
+}
 
-        return usuario;
-    }
 
-    // ➕ Criar usuário
     async create(usuario: Usuario): Promise<Usuario> {
+        let usuarioBusca = await this.findByUsuario(usuario.usuario);
 
-        const usuarioBusca = await this.findByUsuario(usuario.usuario);
+        if (!usuarioBusca) {
+            // Antes de cadastrar o usuario chamamos a função de Criptografia construída no arquivo bcrypt
+            usuario.senha = await this.bcrypt.criptografarSenha(usuario.senha)
 
-        if (usuarioBusca)
-            throw new HttpException(
-                'O usuário já existe!',
-                HttpStatus.BAD_REQUEST
-            );
+            return await this.usuarioRepository.save(usuario);
+        }
 
-        usuario.senha = await this.bcrypt.criptografarSenha(usuario.senha);
-        return this.usuarioRepository.save(usuario);
+        throw new HttpException("O Usuário ja existe!", HttpStatus.BAD_REQUEST);
+
     }
 
-    // ✏️ Atualizar usuário
     async update(usuario: Usuario): Promise<Usuario> {
+        let usuarioUpdate: Usuario = await this.findById(usuario.id) // Função para localizar o usuario pelo ID
+        let usuarioBusca = await this.findByUsuario(usuario.usuario) // Função para localizar o usuario pelo email
 
-        const usuarioUpdate = await this.findById(usuario.id);
-        const usuarioBusca = await this.findByUsuario(usuario.usuario);
+        if (!usuarioUpdate)
+            throw new HttpException('Usuário não encontrado!', HttpStatus.NOT_FOUND);
 
         if (usuarioBusca && usuarioBusca.id !== usuario.id)
-            throw new HttpException(
-                'Usuário (e-mail) já cadastrado!',
-                HttpStatus.BAD_REQUEST
-            );
+            throw new HttpException('Usuário (e-mail) já Cadastrado, digite outro!', HttpStatus.BAD_REQUEST);
 
-        usuario.senha = await this.bcrypt.criptografarSenha(usuario.senha);
-        return this.usuarioRepository.save(usuario);
+        // Antes de atualizar o usuario chamamos a função de Criptografia construída no arquivo bcrypt
+        usuario.senha = await this.bcrypt.criptografarSenha(usuario.senha)
+        return await this.usuarioRepository.save(usuario);
     }
 }

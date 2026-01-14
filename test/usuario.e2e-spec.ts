@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { AppModule } from './../src/app.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
+describe('Testes dos Módulos Usuário e Auth (e2e)', () => {
 
+  let app: INestApplication;
   let token: any;
   let usuarioId: any;
-  let app: INestApplication;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -16,11 +16,12 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
         TypeOrmModule.forRoot({
           type: 'sqlite',
           database: ':memory:',
-          entities: [__dirname + "./../src/**/entities/*.entity.ts"],
+          entities: [__dirname + './../src/**/entities/*.entity.ts'],
           synchronize: true,
           dropSchema: true,
         }),
-        AppModule],
+        AppModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -30,9 +31,13 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-  })
+  });
 
-  it("01 - Deve Cadastrar um novo Usuário", async () => {
+  // =======================
+  // TESTES DE CADASTRO
+  // =======================
+
+  it('01 - Deve Cadastrar um novo Usuário', async () => {
     const resposta = await request(app.getHttpServer())
       .post('/usuarios/cadastrar')
       .send({
@@ -41,13 +46,12 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
         senha: 'rootroot',
         foto: '-',
       })
-      .expect(201)
+      .expect(201);
 
     usuarioId = resposta.body.id;
-
   });
 
-  it("02 - Não Deve Cadastrar um Usuário Duplicado", async () => {
+  it('02 - Não Deve Cadastrar um Usuário Duplicado', async () => {
     await request(app.getHttpServer())
       .post('/usuarios/cadastrar')
       .send({
@@ -56,47 +60,103 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
         senha: 'rootroot',
         foto: '-',
       })
-      .expect(400)
-
+      .expect(400);
   });
 
-  it("03 - Deve Autenticar o Usuário (Login)", async () => {
+  it('03 - Não Deve Cadastrar Usuário sem Nome', async () => {
+    await request(app.getHttpServer())
+      .post('/usuarios/cadastrar')
+      .send({
+        nome: '',
+        usuario: 'teste@teste.com',
+        senha: '123456',
+        foto: '-',
+      })
+      .expect(400);
+  });
+
+  it('04 - Não Deve Cadastrar Usuário com Email Inválido', async () => {
+    await request(app.getHttpServer())
+      .post('/usuarios/cadastrar')
+      .send({
+        nome: 'Teste',
+        usuario: 'email-invalido',
+        senha: '123456',
+        foto: '-',
+      })
+      .expect(400);
+  });
+
+  it('05 - Não Deve Cadastrar Usuário com Senha Curta', async () => {
+    await request(app.getHttpServer())
+      .post('/usuarios/cadastrar')
+      .send({
+        nome: 'Teste',
+        usuario: 'teste2@teste.com',
+        senha: '123',
+        foto: '-',
+      })
+      .expect(400);
+  });
+
+  // =======================
+  // TESTES DE AUTENTICAÇÃO
+  // =======================
+
+  it('06 - Deve Autenticar o Usuário (Login)', async () => {
     const resposta = await request(app.getHttpServer())
-    .post("/usuarios/logar")
-    .send({
-      usuario: 'root@root.com',
-      senha: 'rootroot',
-    })
-    .expect(200)
+      .post('/usuarios/logar')
+      .send({
+        usuario: 'root@root.com',
+        senha: 'rootroot',
+      })
+      .expect(200);
 
     token = resposta.body.token;
+  });
 
-  })
+  it('07 - Não Deve Autenticar Usuário com Senha Incorreta', async () => {
+    await request(app.getHttpServer())
+      .post('/usuarios/logar')
+      .send({
+        usuario: 'root@root.com',
+        senha: 'senhaerrada',
+      })
+      .expect(401);
+  });
 
-  it("04 - Deve Listar todos os Usuários", async () => {
-    return request(app.getHttpServer())
-    .get('/usuarios/all')
-    .set('Authorization', `${token}`)
-    .send({})
-    .expect(200)
-  })
+  // =======================
+  // TESTES PROTEGIDOS (JWT)
+  // =======================
 
-  it("05 - Deve Atualizar um Usuário", async () => {
-    return request(app.getHttpServer())
-    .put('/usuarios/atualizar')
-    .set('Authorization', `${token}`)
-    .send({
-      id: usuarioId,
-      nome: 'Root Atualizado',
-      usuario: 'root@root.com',
-      senha: 'rootroot',
-      foto: '-',
-    })
-    .expect(200)
-    .then( resposta => {
-      expect("Root Atualizado").toEqual(resposta.body.nome);
-    })
+  it('08 - Deve Listar todos os Usuários', async () => {
+    await request(app.getHttpServer())
+      .get('/usuarios/all')
+      .set('Authorization', `${token}`)
+      .expect(200);
+  });
 
-  })
+  it('09 - Não Deve Listar Usuários sem Token', async () => {
+    await request(app.getHttpServer())
+      .get('/usuarios/all')
+      .expect(401);
+  });
+
+  it('10 - Deve Atualizar um Usuário', async () => {
+    await request(app.getHttpServer())
+      .put('/usuarios/atualizar')
+      .set('Authorization', `${token}`)
+      .send({
+        id: usuarioId,
+        nome: 'Root Atualizado',
+        usuario: 'root@root.com',
+        senha: 'rootroot',
+        foto: '-',
+      })
+      .expect(200)
+      .then(resposta => {
+        expect('Root Atualizado').toEqual(resposta.body.nome);
+      });
+  });
 
 });
