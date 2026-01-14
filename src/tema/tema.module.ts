@@ -3,7 +3,9 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { Tema } from "./entities/tema.entity";
 import { TemaService } from "./services/tema.service";
 import { TemaController } from "./controller/tema.controller";
-import { TemaModule as TemaModuleAlias } from "./tema.module";
+
+
+
 @Module({
     imports: [TypeOrmModule.forFeature([Tema])],
     providers: [TemaService],
